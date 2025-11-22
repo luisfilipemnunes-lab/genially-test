@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Exercício de Arrastar — Frutas & Cestos</title>
+<style>
+  :root{--bg:#f7f9fc;--card:#ffffff;--accent:#2b8be6;--ok:#28a745;--bad:#dc3545}
+  *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+  body{margin:0;background:linear-gradient(180deg,var(--bg),#eef4fb);padding:20px;display:flex;align-items:center;justify-content:center;min-height:100vh}
+  .wrap{width:100%;max-width:900px;background:var(--card);border-radius:12px;box-shadow:0 6px 20px rgba(20,40,80,0.08);padding:20px}
+  h1{margin:0 0 12px;font-size:20px;color:#123}
+  p.lead{margin:0 0 18px;color:#345;font-size:14px}
+  .board{display:flex;gap:20px;flex-wrap:wrap}
+  .left, .right{flex:1;min-width:260px}
+  .palette{display:flex;gap:12px;flex-wrap:wrap;padding:12px;background:#fbfcff;border-radius:8px;border:1px solid #eef2f8}
+  .item{width:84px;height:84px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:36px;cursor:grab;background:linear-gradient(180deg,#fff,#f6fbff);border:1px solid #e6eefb;box-shadow:0 2px 6px rgba(14,34,80,0.04)}
+  .item[draggable="true"]:active{cursor:grabbing}
+  .dropzone{min-height:100px;padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#fbfdff);border:2px dashed #dceafc;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+  .dropzone.hint{border-style:solid; border-color:#cfdff8}
+  .dropzone .label{font-weight:600;color:#123}
+  .controls{display:flex;gap:10px;align-items:center;margin-top:14px}
+  button{background:var(--accent);color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+  button.secondary{background:#f1f5f9;color:#123;border:1px solid #e4e9f5}
+  .result{margin-top:12px;font-weight:700}
+  .drop-items{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .score{display:inline-block;padding:6px 10px;border-radius:8px;background:#f3f7fb;border:1px solid #e0ebff}
+  .feedback{margin-top:8px;font-weight:600}
+  @media (max-width:700px){ .board{flex-direction:column} .left,.right{min-width:100%} .item{width:64px;height:64px;font-size:28px} }
+</style>
+</head>
+<body>
+  <div class="wrap" role="application" aria-label="Exercício de arrastar — Frutas para cestos">
+    <h1>Arrasta a fruta para o cesto certo 🍎➡️🧺</h1>
+    <p class="lead">Arrasta cada fruta para o cesto que corresponde ao seu nome. Teste simples — podes usar isto no Genially.</p>
+
+    <div class="board">
+      <div class="left" aria-hidden="false">
+        <div class="palette" id="palette" aria-label="Frutas disponíveis">
+          <div class="item" draggable="true" data-fruit="maçã" id="f1" tabindex="0" role="button" aria-grabbed="false">🍎</div>
+          <div class="item" draggable="true" data-fruit="banana" id="f2" tabindex="0" role="button" aria-grabbed="false">🍌</div>
+          <div class="item" draggable="true" data-fruit="laranja" id="f3" tabindex="0" role="button" aria-grabbed="false">🍊</div>
+          <div class="item" draggable="true" data-fruit="uva" id="f4" tabindex="0" role="button" aria-grabbed="false">🍇</div>
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:#446">Dica: arrasta os ícones para os cestos da direita.</div>
+      </div>
+
+      <div class="right">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="dropzone hint" data-accept="maçã" id="d1" tabindex="0" aria-label="Cesto Maçã">
+            <div class="label">Cesto — Maçã</div>
+            <div class="drop-items" aria-live="polite"></div>
+          </div>
+          <div class="dropzone hint" data-accept="banana" id="d2" tabindex="0" aria-label="Cesto Banana">
+            <div class="label">Cesto — Banana</div>
+            <div class="drop-items" aria-live="polite"></div>
+          </div>
+          <div class="dropzone hint" data-accept="laranja" id="d3" tabindex="0" aria-label="Cesto Laranja">
+            <div class="label">Cesto — Laranja</div>
+            <div class="drop-items" aria-live="polite"></div>
+          </div>
+          <div class="dropzone hint" data-accept="uva" id="d4" tabindex="0" aria-label="Cesto Uva">
+            <div class="label">Cesto — Uva</div>
+            <div class="drop-items" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="checkBtn" title="Verificar respostas">Verificar</button>
+          <button class="secondary" id="resetBtn" title="Repor exercício">Repor</button>
+          <div style="margin-left:auto" class="score">Pontos: <span id="score">0</span>/4</div>
+        </div>
+
+        <div class="result" id="result" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const items = document.querySelectorAll('.item');
+  const drops = document.querySelectorAll('.dropzone');
+  const palette = document.getElementById('palette');
+  const checkBtn = document.getElementById('checkBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const scoreEl = document.getElementById('score');
+  const resultEl = document.getElementById('result');
+
+  let dragged = null;
+
+  items.forEach(it => {
+    it.addEventListener('dragstart', e => {
+      dragged = it;
+      e.dataTransfer.setData('text/plain', it.id);
+      it.setAttribute('aria-grabbed','true');
+      setTimeout(()=>it.style.opacity='0.5', 0);
+    });
+    it.addEventListener('dragend', () => {
+      if(dragged) dragged.style.opacity='1';
+      if(dragged) dragged.setAttribute('aria-grabbed','false');
+      dragged = null;
+    });
+    // keyboard accessibility: press Enter to "pick up" then press key on dropzone to "drop"
+    it.addEventListener('keydown', e=>{
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        dragged = it;
+        it.style.opacity = '0.5';
+        it.setAttribute('aria-grabbed','true');
+      }
+    });
+  });
+
+  drops.forEach(dz => {
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+    dz.addEventListener('dragleave', () => { dz.classList.remove('over'); });
+    dz.addEventListener('drop', e => {
+      e.preventDefault();
+      dz.classList.remove('over');
+      const id = e.dataTransfer.getData('text/plain');
+      const node = document.getElementById(id);
+      if(node) placeInDropzone(node, dz);
+    });
+
+    // keyboard drop: if a draggable is "picked" (dragged var set), Enter on dropzone will drop it
+    dz.addEventListener('keydown', e=>{
+      if((e.key === 'Enter' || e.key === ' ') && dragged){
+        e.preventDefault();
+        placeInDropzone(dragged, dz);
+        dragged.style.opacity='1';
+        dragged.setAttribute('aria-grabbed','false');
+        dragged = null;
+      }
+    });
+  });
+
+  function placeInDropzone(node, dz){
+    // prevent duplicate: if already inside this drop, do nothing
+    const currentParent = node.parentElement;
+    const dropItems = dz.querySelector('.drop-items');
+    // remove from previous parent (palette or other drop)
+    if(currentParent.classList.contains('drop-items')){
+      // remove from that drop
+      currentParent.removeChild(node);
+    } else if(currentParent === palette){
+      palette.removeChild(node);
+    }
+    // append to new drop
+    dropItems.appendChild(node);
+    node.style.margin = '6px';
+  }
+
+  checkBtn.addEventListener('click', () => {
+    let correct = 0;
+    // for each dropzone, check if correct item(s) inside
+    drops.forEach(dz => {
+      const accept = dz.dataset.accept;
+      const dropItems = dz.querySelectorAll('.item');
+      // allow multiple items but count each correct one
+      dropItems.forEach(it => {
+        if(it.dataset.fruit === accept){
+          it.style.outline = '3px solid rgba(40,167,69,0.18)';
+          it.style.boxShadow = '0 4px 10px rgba(40,167,69,0.06)';
+          correct++;
+        } else {
+          it.style.outline = '3px solid rgba(220,53,69,0.10)';
+          it.style.boxShadow = '0 4px 10px rgba(220,53,69,0.05)';
+        }
+      });
+    });
+
+    scoreEl.textContent = correct;
+    if(correct === items.length){
+      resultEl.innerHTML = `<span style="color:var(--ok)">✔️ Ótimo — todas corretas! (${correct}/${items.length})</span>`;
+    } else if (correct === 0){
+      resultEl.innerHTML = `<span style="color:var(--bad)">❌ Nenhuma correta — tenta novamente. (${correct}/${items.length})</span>`;
+    } else {
+      resultEl.innerHTML = `<span style="color:#b76d00">Quase lá — ${correct} corretas de ${items.length}.</span>`;
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    // move all items back to palette and clear styles
+    document.querySelectorAll('.drop-items').forEach(di => {
+      while(di.firstChild) {
+        const it = di.firstChild;
+        it.style.margin = '';
+        it.style.outline = '';
+        it.style.boxShadow = '';
+        palette.appendChild(it);
+      }
+    });
+    // ensure any items remaining elsewhere go back
+    document.querySelectorAll('.item').forEach(it=>{
+      it.style.opacity='1';
+      it.setAttribute('aria-grabbed','false');
+    });
+    scoreEl.textContent = '0';
+    resultEl.textContent = '';
+  });
+
+  // slight UX: allow clicking on item to pick it up and then click dropzone to drop (mouse)
+  let clickPicked = null;
+  items.forEach(it=>{
+    it.addEventListener('click', e=>{
+      e.stopPropagation();
+      // toggle pick
+      if(clickPicked === it){
+        clickPicked = null;
+        it.style.transform = '';
+      } else {
+        if(clickPicked) clickPicked.style.transform = '';
+        clickPicked = it;
+        it.style.transform = 'translateY(-6px) scale(1.02)';
+      }
+    });
+  });
+  drops.forEach(dz=>{
+    dz.addEventListener('click', e=>{
+      if(clickPicked){
+        placeInDropzone(clickPicked, dz);
+        clickPicked.style.transform = '';
+        clickPicked = null;
+      }
+    });
+  });
+
+  // allow dropping back into palette to "remove" from drops
+  palette.addEventListener('dragover', e=> e.preventDefault());
+  palette.addEventListener('drop', e=>{
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    const node = document.getElementById(id);
+    if(node){
+      // append back to palette
+      palette.appendChild(node);
+      node.style.margin = '';
+    }
+  });
+
+  // initial focus helpers for accessibility
+  document.querySelectorAll('.dropzone, .item').forEach(el => el.setAttribute('tabindex','0'));
+})();
+</script>
+</body>
+</html>
