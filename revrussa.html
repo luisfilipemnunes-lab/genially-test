@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Revolução Russa — Arrasta e Solta</title>
+<style>
+  :root{
+    --card-w:220px;
+    --gap:16px;
+    --bg:#f5f2ef;
+    --accent:#b02020;
+    --text:#222;
+  }
+  body{font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); margin:0; padding:20px;}
+  .container{max-width:1100px; margin:0 auto; background:white; padding:18px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.08);}
+  h1{color:var(--accent); margin:0 0 6px 0;}
+  .subtitle{font-size:0.95rem; margin-bottom:18px;}
+  .layout{display:flex; gap:var(--gap);}
+  .images, .options{flex:1;}
+  .images-grid{display:grid; grid-template-columns: repeat(2, 1fr); gap:12px;}
+  .img-card{width:100%; height:150px; border:2px solid #eee; border-radius:6px; overflow:hidden; position:relative; background:#fafafa; display:flex; align-items:center; justify-content:center;}
+  .img-card img{width:100%; height:100%; object-fit:cover; transform-origin:center; transition: transform .35s ease, box-shadow .2s;}
+  .img-card.correct { border-color: #2ecc71; box-shadow:0 6px 18px rgba(46,204,113,0.12);}
+  .img-card.wrong { border-color: #e74c3c; box-shadow:0 6px 18px rgba(231,76,60,0.12);}
+  .dropzone{position:absolute; inset:0; pointer-events:none;} /* visible drop zone not necessary */
+  .options{display:flex; flex-direction:column; gap:10px; padding-left:20px;}
+  .drag{background:white; border:1px solid #ddd; padding:10px 12px; border-radius:6px; cursor:grab; user-select:none; box-shadow:0 4px 10px rgba(0,0,0,0.04); transition: transform .15s ease;}
+  .drag:active{cursor:grabbing; transform:scale(.98);}
+  .hint{font-size:0.9rem; color:#555; margin-top:10px;}
+  .footer{margin-top:18px; display:flex; justify-content:space-between; align-items:center;}
+  .btn{background:var(--accent); color:white; padding:8px 12px; border-radius:6px; border:none; cursor:pointer;}
+  /* simple animation for success */
+  @keyframes pop {
+    0% { transform: scale(.92); }
+    60% { transform: scale(1.06); }
+    100% { transform: scale(1); }
+  }
+  .pop { animation: pop .45s ease; }
+  /* small responsive */
+  @media (max-width:900px){ .layout{flex-direction:column;} .options{padding-left:0;} .img-card{height:140px;} }
+</style>
+</head>
+<body>
+  <div class="container" aria-live="polite">
+    <h1>Revolução Russa — Exercício “Arrasta e Solta”</h1>
+    <div class="subtitle">Arrasta cada nome até à imagem correspondente. Receberás feedback imediato.</div>
+
+    <div class="layout">
+      <!-- IMAGENS: substitui src pelos ficheiros locais se carregares imagens no Genially -->
+      <div class="images" aria-label="Imagens">
+        <div class="images-grid">
+          <div class="img-card" data-accept="nicholas" id="img1" role="region" aria-label="Imagem Nicolau II">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/Nicholas_II_of_Russia.jpg" alt="Nicolau II" />
+          </div>
+
+          <div class="img-card" data-accept="lenin" id="img2" role="region" aria-label="Imagem Lenine">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/60/Lenin_1920.jpg" alt="Lenine" />
+          </div>
+
+          <div class="img-card" data-accept="bloody" id="img3" role="region" aria-label="Imagem Domingo Sangrento">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Bloody_Sunday_1905.jpg" alt="Domingo Sangrento 1905" />
+          </div>
+
+          <div class="img-card" data-accept="palace" id="img4" role="region" aria-label="Imagem Palácio de Inverno">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/74/Storming_of_the_Winter_Palace.jpg" alt="Assalto ao Palácio de Inverno 1917" />
+          </div>
+
+          <div class="img-card" data-accept="red" id="img5" role="region" aria-label="Imagem Exército Vermelho">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/8/80/Red_Guards_1917.jpg" alt="Exército Vermelho" />
+          </div>
+
+          <div class="img-card" data-accept="white" id="img6" role="region" aria-label="Imagem Exército Branco">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/19/White_Army_soldiers_1919.jpg" alt="Exército Branco" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ETIQUETAS ARRASTÁVEIS -->
+      <div class="options" aria-label="Etiquetas">
+        <div class="drag" draggable="true" data-key="nicholas">Nicolau II – Czar autocrata</div>
+        <div class="drag" draggable="true" data-key="lenin">Lenine – Líder bolchevique</div>
+        <div class="drag" draggable="true" data-key="bloody">Domingo Sangrento (1905)</div>
+        <div class="drag" draggable="true" data-key="palace">Assalto ao Palácio de Inverno (1917)</div>
+        <div class="drag" draggable="true" data-key="red">Exército Vermelho</div>
+        <div class="drag" draggable="true" data-key="white">Exército Branco</div>
+
+        <div class="hint">Dica: pensa na cronologia e nos protagonistas das diferentes fases.</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div id="status" aria-live="polite">Pendente — arrasta uma etiqueta.</div>
+      <div>
+        <button class="btn" id="reset">Reiniciar</button>
+      </div>
+    </div>
+  </div>
+
+<!-- SONS: substitui URLs por ficheiros carregados no Genially se preferires -->
+<audio id="sound-correct">
+  <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
+</audio>
+<audio id="sound-wrong">
+  <source src="https://actions.google.com/sounds/v1/cartoon/boing.ogg" type="audio/ogg">
+</audio>
+
+<script>
+/* DRAG & DROP LOGIC */
+const draggables = document.querySelectorAll('.drag');
+const dropzones = document.querySelectorAll('.img-card');
+const status = document.getElementById('status');
+const resetBtn = document.getElementById('reset');
+const soundCorrect = document.getElementById('sound-correct');
+const soundWrong = document.getElementById('sound-wrong');
+
+draggables.forEach(d => {
+  d.addEventListener('dragstart', (ev) => {
+    ev.dataTransfer.setData('text/plain', d.dataset.key);
+    // visual
+    setTimeout(()=> d.classList.add('hidden'), 0);
+  });
+  d.addEventListener('dragend', ()=> d.classList.remove('hidden'));
+});
+
+dropzones.forEach(zone => {
+  zone.addEventListener('dragover', (ev) => ev.preventDefault());
+  zone.addEventListener('dragenter', (ev) => {
+    ev.preventDefault();
+    zone.style.transform = 'scale(1.02)';
+  });
+  zone.addEventListener('dragleave', () => zone.style.transform = '');
+  zone.addEventListener('drop', (ev) => {
+    ev.preventDefault();
+    zone.style.transform = '';
+    const key = ev.dataTransfer.getData('text/plain');
+    handleDrop(zone, key);
+  });
+});
+
+function handleDrop(zone, key){
+  const accept = zone.dataset.accept;
+  const correct = (accept === key);
+  // if correct: mark, play sound, show message, animate
+  if(correct){
+    zone.classList.remove('wrong'); zone.classList.add('correct','pop');
+    // find and hide the dragged label
+    const label = document.querySelector('.drag[data-key="'+key+'"]');
+    if(label) label.style.visibility = 'hidden';
+    status.textContent = 'Correto! ' + label?.textContent;
+    try{ soundCorrect.currentTime=0; soundCorrect.play(); }catch(e){}
+    // small scale animation
+    setTimeout(()=> zone.classList.remove('pop'), 500);
+  } else {
+    // wrong
+    zone.classList.remove('correct'); zone.classList.add('wrong','pop');
+    status.textContent = 'Tenta novamente. Lembra-te dos acontecimentos de cada fase da Revolução Russa.';
+    try{ soundWrong.currentTime=0; soundWrong.play(); }catch(e){}
+    setTimeout(()=> zone.classList.remove('pop','wrong'), 700);
+  }
+  checkAllDone();
+}
+
+function checkAllDone(){
+  // if all correct (all labels hidden) => success message
+  const remaining = document.querySelectorAll('.drag[style*="visibility: visible"], .drag:not([style])');
+  // better check: count hidden labels
+  const all = document.querySelectorAll('.drag');
+  let done = 0;
+  all.forEach(a => { if (a.style.visibility === 'hidden') done++; });
+  if(done === all.length){
+    status.textContent = 'Muito bem! Identificaste corretamente as figuras e os acontecimentos essenciais da Revolução Russa.';
+  }
+}
+
+resetBtn.addEventListener('click', ()=>{
+  // reset visuals
+  document.querySelectorAll('.img-card').forEach(z => { z.classList.remove('correct','wrong'); z.style.transform=''; });
+  document.querySelectorAll('.drag').forEach(d => { d.style.visibility = 'visible'; });
+  status.textContent = 'Reiniciado — arrasta uma etiqueta.';
+});
+
+/* Accessibility: keyboard focus for drag items (basic) */
+draggables.forEach(d=>{
+  d.tabIndex = 0;
+  d.addEventListener('keydown', e=>{
+    if(e.key === 'Enter'){ d.dispatchEvent(new Event('dragstart')); }
+  });
+});
+</script>
+</body>
+</html>
